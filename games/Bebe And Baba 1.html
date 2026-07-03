@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bebe and Baba 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -110,46 +112,26 @@
     outline: 4px solid #ff3b3b;
     outline-offset: 2px;
   }
-  .rotate-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 250px;
-    margin: 0;
-  }
-  .rotate-label {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-weight: bold;
-    font-size: 0.95rem;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
-    white-space: nowrap;
-  }
-  .rotate-btn {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .timer-display {
+    display: block;
+    width: 150px;
+    margin: 0 auto 18px;
+    background: #0a0a0a;
+    color: #ff2b2b;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 2.1rem;
+    letter-spacing: 4px;
+    text-align: center;
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 3px solid #1a1a1a;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 0 8px rgba(255,43,43,0.35);
+    text-shadow: 0 0 8px rgba(255,43,43,0.75);
     cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    transition: transform 0.12s ease, opacity 0.15s ease;
-    padding: 0;
+    user-select: none;
   }
-  .rotate-btn:active { transform: scale(0.9); }
-  .rotate-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-  .rotate-btn.ccw { background: #f97316; }
-  .rotate-btn.cw { background: #3b82f6; }
+  .timer-display:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.4), inset 0 0 12px rgba(255,43,43,0.55); }
+  .timer-display.stopped { color: #ff8080; opacity: 0.75; }
   .status-bar {
     text-align: center;
     color: #0a4a33;
@@ -199,7 +181,7 @@
       justify-content: center;
       gap: 22px;
     }
-    #pile-wrap { flex: 1 1 auto; display: block; }
+    #pile-wrap { flex: 1 1 auto; display: block; align-self: center; }
     .pile { max-width: 650px; }
   }
 </style>
@@ -211,47 +193,18 @@
   <div class="instructions">
     <strong>Click</strong> a piece below to select it (it gets a red glow).
     <strong>Click</strong> a square on the board to try placing it there!
-    Use the round arrow buttons to turn the selected piece.
+    Turn the selected piece with the <strong>left/right arrow keys</strong>, or by
+    <strong>clicking it again</strong> in the tray.
     This is a fun 48-piece puzzle, so take your time!
     Hover over a piece in the tray below to see it full-size.
   </div>
 
+  <div id="timer-display" class="timer-display">00:00</div>
+
   <div class="game-area">
   <div class="board-column">
-    <div class="rotate-wrap">
-      <button class="rotate-btn ccw" data-dir="ccw" aria-label="Turn piece counter-clockwise" disabled>
-        <svg viewBox="0 0 40 40" width="32" height="32">
-          <path d="M10 12 A14 14 0 1 0 26 7" stroke="white" stroke-width="3.4" stroke-linecap="round" fill="none"/>
-          <polygon points="28.4,4.9 15.8,6.7 24.8,17.5" fill="white"/>
-        </svg>
-      </button>
-      <span class="rotate-label">Turn Piece</span>
-      <button class="rotate-btn cw" data-dir="cw" aria-label="Turn piece clockwise" disabled>
-        <svg viewBox="0 0 40 40" width="32" height="32">
-          <path d="M30 12 A14 14 0 1 1 14 7" stroke="white" stroke-width="3.4" stroke-linecap="round" fill="none"/>
-          <polygon points="11.6,4.9 24.2,6.7 15.2,17.5" fill="white"/>
-        </svg>
-      </button>
-    </div>
-
     <div id="board-wrap">
       <div id="board" class="board"></div>
-    </div>
-
-    <div class="rotate-wrap">
-      <button class="rotate-btn ccw" data-dir="ccw" aria-label="Turn piece counter-clockwise" disabled>
-        <svg viewBox="0 0 40 40" width="32" height="32">
-          <path d="M10 12 A14 14 0 1 0 26 7" stroke="white" stroke-width="3.4" stroke-linecap="round" fill="none"/>
-          <polygon points="28.4,4.9 15.8,6.7 24.8,17.5" fill="white"/>
-        </svg>
-      </button>
-      <span class="rotate-label">Turn Piece</span>
-      <button class="rotate-btn cw" data-dir="cw" aria-label="Turn piece clockwise" disabled>
-        <svg viewBox="0 0 40 40" width="32" height="32">
-          <path d="M30 12 A14 14 0 1 1 14 7" stroke="white" stroke-width="3.4" stroke-linecap="round" fill="none"/>
-          <polygon points="11.6,4.9 24.2,6.7 15.2,17.5" fill="white"/>
-        </svg>
-      </button>
     </div>
   </div>
 
@@ -404,6 +357,7 @@
     placedCount = 0;
     document.getElementById('win-screen').classList.remove('show');
     setStatus('Pick a puzzle piece to start!');
+    resetTimer();
     renderBoard();
     renderPile();
     // Work around a first-paint glitch with freshly-inserted SVG clipPaths
@@ -453,12 +407,13 @@
       wrap.appendChild(rotator);
       pile.appendChild(wrap);
     });
-    updateRotateButtons();
   }
 
-  function updateRotateButtons() {
-    const enabled = selected !== null;
-    document.querySelectorAll('.rotate-btn').forEach(btn => { btn.disabled = !enabled; });
+  function rotatePiece(slot, dir) {
+    const piece = pieces[slot];
+    if (!piece) return;
+    piece.rotation = (piece.rotation + (dir === 'cw' ? 90 : 270)) % 360;
+    renderPile();
   }
 
   /* ---------------- Audio (Web Audio API only) ---------------- */
@@ -519,6 +474,7 @@
       renderPile();
       if (placedCount === COLS * ROWS) {
         setStatus('🎉 Bebe and Baba is complete! 🎉');
+        stopTimer();
         setTimeout(() => {
           playWinMelody();
           document.getElementById('win-screen').classList.add('show');
@@ -538,7 +494,8 @@
 
   function selectPiece(slot) {
     selected = slot;
-    setStatus('Piece selected! Click a board square to place it, or use the arrows to turn it.');
+    setStatus('Piece selected! Click a board square to place it, or press ←/→ to turn it.');
+    startTimer();
     renderPile();
   }
 
@@ -547,7 +504,12 @@
     if (!el) return;
     e.preventDefault();
     e.stopPropagation();
-    selectPiece(Number(el.dataset.slot));
+    const slot = Number(el.dataset.slot);
+    if (selected === slot) {
+      rotatePiece(slot, 'cw');
+    } else {
+      selectPiece(slot);
+    }
   }
   document.getElementById('pile').addEventListener('click', handlePileActivate);
   document.getElementById('pile').addEventListener('contextmenu', handlePileActivate);
@@ -566,16 +528,55 @@
   document.getElementById('board').addEventListener('click', handleBoardActivate);
   document.getElementById('board').addEventListener('contextmenu', handleBoardActivate);
 
-  document.querySelectorAll('.rotate-btn.cw').forEach(btn => btn.addEventListener('click', () => {
+  document.addEventListener('keydown', (e) => {
     if (selected === null) return;
-    pieces[selected].rotation = (pieces[selected].rotation + 90) % 360;
-    renderPile();
-  }));
-  document.querySelectorAll('.rotate-btn.ccw').forEach(btn => btn.addEventListener('click', () => {
-    if (selected === null) return;
-    pieces[selected].rotation = (pieces[selected].rotation + 270) % 360;
-    renderPile();
-  }));
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      rotatePiece(selected, 'cw');
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      rotatePiece(selected, 'ccw');
+    }
+  });
+
+  /* ---------------- Digital timer ---------------- */
+  let timerSeconds = 0;
+  let timerInterval = null;
+  let timerRunning = false;
+
+  function updateTimerDisplay() {
+    const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+    const s = (timerSeconds % 60).toString().padStart(2, '0');
+    document.getElementById('timer-display').textContent = `${m}:${s}`;
+  }
+
+  function startTimer() {
+    if (timerRunning) return;
+    timerRunning = true;
+    document.getElementById('timer-display').classList.remove('stopped');
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function stopTimer() {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerInterval = null;
+    document.getElementById('timer-display').classList.add('stopped');
+  }
+
+  function resetTimer() {
+    stopTimer();
+    timerSeconds = 0;
+    document.getElementById('timer-display').classList.remove('stopped');
+    updateTimerDisplay();
+  }
+
+  document.getElementById('timer-display').addEventListener('click', () => {
+    stopTimer();
+  });
 
   document.getElementById('play-again').addEventListener('click', initGame);
 
