@@ -10,3 +10,4 @@
 | Daigle Puzzle 8 | ./games/bebe and baba 8.html |
 | Daigle Puzzle 9 | ./games/bebe and baba 9.html |
 | Daigle Puzzle 10 | ./games/bebe and baba 10.html |
+| Aquarium | ./games/Aquarium.html |

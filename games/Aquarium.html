@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aquarium — Math Hunter</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: radial-gradient(circle at 50% 0%, #0a3d5c, #021a2e 70%);
+    font-family: 'Baloo 2', sans-serif;
+    color: #eaf6ff;
+    padding: 14px;
+  }
+  h1 {
+    margin: 6px 0 10px;
+    font-size: 1.8em;
+    text-shadow: 0 0 10px rgba(80,200,255,0.6);
+    letter-spacing: 1px;
+  }
+  #hud {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+    justify-content: center;
+    background: rgba(0,20,40,0.55);
+    border: 2px solid #3aa9d8;
+    border-radius: 14px;
+    padding: 8px 20px;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    box-shadow: 0 0 14px rgba(58,169,216,0.4) inset;
+  }
+  #hud span b { color: #ffd75e; }
+  #problemDisplay {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.15em;
+    color: #7dffb0;
+    text-shadow: 0 0 8px #1fae63;
+  }
+  #canvasWrap {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 0 0 4px #0e4a68, 0 0 30px rgba(0,150,220,0.5), 0 15px 40px rgba(0,0,0,0.6);
+  }
+  canvas { display: block; touch-action: none; cursor: grab; background: #012134; }
+  #msg {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.05em;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+    white-space: nowrap;
+    z-index: 5;
+  }
+  #instructions {
+    max-width: 640px;
+    text-align: center;
+    font-size: 0.95em;
+    color: #bfe6ff;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  #restartBtn {
+    margin-top: 10px;
+    background: #ff6b4a;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 700;
+    font-size: 1em;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #b8462d;
+  }
+  #restartBtn:active { transform: translateY(3px); box-shadow: none; }
+
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(3,25,45,0.96), rgba(1,15,28,0.98));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 20px;
+    z-index: 10;
+    text-align: center;
+  }
+  #overlay h2 {
+    margin: 0 0 4px;
+    font-size: 1.5em;
+    color: #ffd75e;
+    text-shadow: 0 0 10px rgba(255,215,94,0.5);
+  }
+  .optionGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  .optionGroup .label {
+    font-size: 0.95em;
+    color: #9fd8ff;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .btnRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 540px;
+  }
+  .choiceBtn {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid #3aa9d8;
+    color: #eaf6ff;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 700;
+    font-size: 0.92em;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .choiceBtn:hover { background: rgba(58,169,216,0.25); }
+  .choiceBtn.selected {
+    background: #3aa9d8;
+    color: #04263c;
+    box-shadow: 0 0 12px rgba(58,169,216,0.8);
+  }
+  .choiceBtn:disabled { cursor: not-allowed; }
+  #startBtn {
+    margin-top: 6px;
+    background: #4ee6b0;
+    color: #04302a;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 30px;
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 700;
+    font-size: 1.15em;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #1f9e77;
+    opacity: 0.45;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  #startBtn.ready { opacity: 1; pointer-events: auto; }
+  #lockNote {
+    font-size: 0.8em;
+    color: #ffd75e;
+    max-width: 400px;
+    min-height: 1.2em;
+  }
+</style>
+</head>
+<body>
+
+<h1>🐠 Aquarium: Math Hunter 🤿</h1>
+
+<div id="hud">
+  <span>Score: <b id="scoreDisplay">0</b></span>
+  <span>Round: <b id="roundDisplay">1</b></span>
+  <span id="problemDisplay">? + ? = ?</span>
+</div>
+
+<div id="canvasWrap">
+  <canvas id="game" width="900" height="600"></canvas>
+  <div id="msg"></div>
+
+  <div id="overlay">
+    <h2>🌊 Set Up Your Dive</h2>
+    <div class="optionGroup">
+      <div class="label">Difficulty</div>
+      <div class="btnRow" id="diffRow">
+        <button class="choiceBtn" data-diff="supereasy">Super Easy</button>
+        <button class="choiceBtn" data-diff="easy">Easy</button>
+        <button class="choiceBtn" data-diff="medium">Medium</button>
+        <button class="choiceBtn" data-diff="hard">Hard</button>
+      </div>
+    </div>
+    <div class="optionGroup">
+      <div class="label">Math Operations</div>
+      <div class="btnRow" id="opsRow">
+        <button class="choiceBtn" data-ops="+">Addition Only</button>
+        <button class="choiceBtn" data-ops="-">Subtraction Only</button>
+        <button class="choiceBtn" data-ops="x">Multiplication Only</button>
+        <button class="choiceBtn" data-ops="/">Division Only</button>
+        <button class="choiceBtn" data-ops="+,-">Addition &amp; Subtraction</button>
+        <button class="choiceBtn" data-ops="+,-,x">Add, Subtract &amp; Multiply</button>
+        <button class="choiceBtn" data-ops="+,-,x,/">All Four Operations</button>
+      </div>
+      <div id="lockNote"></div>
+    </div>
+    <button id="startBtn">Start Diving! 🤿</button>
+  </div>
+</div>
+
+<button id="restartBtn">Change Options / Restart</button>
+
+<p id="instructions">
+  🖐️ <b>Drag the diver</b> left and right along the ocean floor to line up a clear shot.<br>
+  🎯 <b>Tap the goldfish</b> whose number matches the answer on the shipwreck's glowing panel.<br>
+  If the diver has a straight, unobstructed path to that fish, he'll fire and pop it! Watch out — the wreck's hull can block the shot.
+</p>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const scoreEl = document.getElementById('scoreDisplay');
+  const roundEl = document.getElementById('roundDisplay');
+  const problemEl = document.getElementById('problemDisplay');
+  const msgEl = document.getElementById('msg');
+  const restartBtn = document.getElementById('restartBtn');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const diffRow = document.getElementById('diffRow');
+  const opsRow = document.getElementById('opsRow');
+  const lockNote = document.getElementById('lockNote');
+
+  const WATER_TOP = 46;
+  const SAND_Y = 538;
+  const DIVER_Y = 512;
+
+  const DIFF = {
+    supereasy: { speedBase: 13, varMin: 0.4, varMax: 0.8, addMax: 6,  mulMax: 3, divMax: 3, numPad: 3,  fixedNumbers: true  },
+    easy:      { speedBase: 20, varMin: 0.5, varMax: 1.1, addMax: 10, mulMax: 5, divMax: 5, numPad: 6,  fixedNumbers: true  },
+    medium:    { speedBase: 32, varMin: 0.6, varMax: 1.6, addMax: 15, mulMax: 8, divMax: 7, numPad: 10, fixedNumbers: false },
+    hard:      { speedBase: 46, varMin: 0.8, varMax: 2.1, addMax: 22, mulMax: 12, divMax: 9, numPad: 14, fixedNumbers: false }
+  };
+  let difficulty = null;
+  let allowedOps = null;
+  let gameStarted = false;
+  let loopStarted = false;
+
+  diffRow.querySelectorAll('.choiceBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      diffRow.querySelectorAll('.choiceBtn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      difficulty = btn.dataset.diff;
+      updateOpsLock();
+    });
+  });
+  opsRow.querySelectorAll('.choiceBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(btn.disabled) return;
+      opsRow.querySelectorAll('.choiceBtn').forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      allowedOps = btn.dataset.ops.split(',');
+      checkReady();
+    });
+  });
+
+  function updateOpsLock(){
+    if(difficulty === 'supereasy'){
+      allowedOps = ['+'];
+      opsRow.querySelectorAll('.choiceBtn').forEach(b=>{
+        const isAdd = b.dataset.ops === '+';
+        b.classList.toggle('selected', isAdd);
+        b.disabled = !isAdd;
+        b.style.opacity = isAdd ? '1' : '0.3';
+      });
+      lockNote.textContent = 'Super Easy locks in Addition Only.';
+    } else {
+      opsRow.querySelectorAll('.choiceBtn').forEach(b=>{
+        b.disabled = false;
+        b.style.opacity = '1';
+        b.classList.remove('selected');
+      });
+      allowedOps = null;
+      lockNote.textContent = '';
+    }
+    checkReady();
+  }
+
+  function checkReady(){
+    if(difficulty && allowedOps) startBtn.classList.add('ready');
+    else startBtn.classList.remove('ready');
+  }
+  startBtn.addEventListener('click', ()=>{
+    if(!difficulty || !allowedOps) return;
+    ensureAudio();
+    overlay.style.display = 'none';
+    beginGame();
+  });
+  restartBtn.addEventListener('click', ()=>{
+    overlay.style.display = 'flex';
+    gameStarted = false;
+    diffRow.querySelectorAll('.choiceBtn').forEach(b=>b.classList.remove('selected'));
+    opsRow.querySelectorAll('.choiceBtn').forEach(b=>{ b.classList.remove('selected'); b.disabled=false; b.style.opacity='1'; });
+    startBtn.classList.remove('ready');
+    lockNote.textContent = '';
+    difficulty = null; allowedOps = null;
+  });
+
+  let actx = null;
+  function ensureAudio(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+  function beep(freqStart, freqEnd, dur, type, vol){
+    if(!actx) return;
+    const t0 = actx.currentTime;
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freqStart, t0);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd,20), t0+dur);
+    gain.gain.setValueAtTime((vol||0.15), t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(t0); osc.stop(t0+dur);
+  }
+  function playSound(kind){
+    if(!actx) return;
+    if(kind==='shoot') beep(900,300,0.12,'square',0.12);
+    else if(kind==='explode'){ beep(180,40,0.35,'sawtooth',0.22); beep(500,60,0.2,'triangle',0.1); }
+    else if(kind==='wrong') beep(160,90,0.25,'sawtooth',0.15);
+    else if(kind==='blocked'){ beep(400,400,0.08,'square',0.1); setTimeout(()=>beep(300,300,0.08,'square',0.1),90); }
+    else if(kind==='round'){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,f,0.15,'sine',0.12), i*110)); }
+  }
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function randInt(a,b){ return Math.floor(rand(a,b+1)); }
+  function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function dist(x1,y1,x2,y2){ return Math.hypot(x2-x1,y2-y1); }
+  function shuffle(arr){
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]] = [arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  // ---------- Shipwreck ----------
+  const ship = {
+    hull: [ [540,562],[558,478],[600,440],[660,422],[740,418],[810,424],[858,444],[884,468],[886,562] ],
+    deckLine: [ [600,440],[660,422],[740,418],[810,424],[858,444] ],
+    mastBase: {x:748,y:418}, mastTop: {x:712,y:292},
+    yardArm: {x1:668,y1:322,x2:772,y2:308},
+    ribX: [630,676,722,768,812],
+    panel: {x:706,y:452,w:150,h:44},
+    porthole1: {x:636,y:474,r:15},
+    porthole2: {x:836,y:468,r:13},
+    holes: [ {x:672,y:452,r:17}, {x:792,y:446,r:12} ],
+    anchorX: 580,
+    algae: [ {x:566,y:520,r:26}, {x:610,y:545,r:20}, {x:820,y:520,r:24}, {x:700,y:552,r:18} ]
+  };
+
+  function segIntersect(p1,p2,p3,p4){
+    function ccw(a,b,c){ return (c.y-a.y)*(b.x-a.x) > (b.y-a.y)*(c.x-a.x); }
+    return (ccw(p1,p3,p4) !== ccw(p2,p3,p4)) && (ccw(p1,p2,p3) !== ccw(p1,p2,p4));
+  }
+  function isClearShot(from, to){
+    const pts = ship.hull.map(p=>({x:p[0],y:p[1]}));
+    const n = pts.length;
+    for(let i=0;i<n;i++){
+      const a = pts[i], b = pts[(i+1)%n];
+      if(segIntersect(from, to, a, b)) return false;
+    }
+    return true;
+  }
+
+  let score = 0, round = 1, fishCount = 6;
+  let goldfish = [];
+  let decorFish = [];
+  let scavengers = [];
+  let bubbles = [];
+  let bullets = [];
+  let particles = [];
+  let problem = {a:1,b:1,op:'+',answer:2};
+  let time = 0;
+  let bubbleTimer = 0;
+  let idCounter = 1;
+
+  const diver = { x: 160, y: DIVER_Y, dragging:false, dragOffsetX:0, gunAngle: -0.3, firing: 0 };
+
+  function gunTip(){
+    const bx = diver.x + Math.cos(diver.gunAngle)*46;
+    const by = diver.y - 34 + Math.sin(diver.gunAngle)*46;
+    return {x:bx, y:by};
+  }
+
+  function setProblemDisplay(a,op,b){
+    const opSym = op==='x' ? '×' : op==='/' ? '÷' : op;
+    problemEl.textContent = a + ' ' + opSym + ' ' + b + ' = ?';
+  }
+
+  // Generates a fresh problem AND a matching set of fish numbers (used at round start)
+  function generateProblem(count){
+    const d = DIFF[difficulty];
+    const growth = Math.min(round-1, 10);
+    const op = choice(allowedOps);
+    let a,b,answer;
+    if(op === '+'){
+      a = randInt(1, d.addMax+growth); b = randInt(1, d.addMax+growth);
+      answer = a+b;
+    } else if(op === '-'){
+      a = randInt(5, d.addMax+growth+5); b = randInt(1, Math.max(1,a-1));
+      answer = a-b;
+    } else if(op === 'x'){
+      a = randInt(2, d.mulMax+Math.floor(growth/2)); b = randInt(2, d.mulMax+Math.floor(growth/2));
+      answer = a*b;
+    } else {
+      b = randInt(2, d.divMax+Math.floor(growth/2));
+      answer = randInt(2, d.divMax+Math.floor(growth/2));
+      a = b*answer;
+    }
+    const nums = new Set([answer]);
+    let guard = 0;
+    const lo = Math.max(0, answer - d.numPad - round);
+    const hi = answer + d.numPad + round;
+    while(nums.size < count && guard < 500){
+      guard++;
+      const n = randInt(lo, hi);
+      if(n>=0) nums.add(n);
+    }
+    while(nums.size < count){
+      nums.add(randInt(0, hi+nums.size+5));
+    }
+    const arr = shuffle(Array.from(nums));
+    problem = {a,b,op,answer};
+    setProblemDisplay(a,op,b);
+    return arr;
+  }
+
+  // Used on medium/hard: reshuffle numbers on the remaining fish + new problem
+  function assignNewProblemToFish(){
+    const nums = generateProblem(goldfish.length);
+    goldfish.forEach((f,i)=> f.number = nums[i]);
+  }
+
+  // Used on easy/super-easy: keep fish numbers fixed, just build a new problem
+  // whose answer matches one of the numbers already on a live fish.
+  function generateProblemForRemainingFish(){
+    const target = choice(goldfish.map(f=>f.number));
+    const op = choice(allowedOps);
+    let a,b;
+    if(op === '+'){
+      a = randInt(0, target);
+      b = target - a;
+    } else if(op === '-'){
+      b = randInt(1, 6+round);
+      a = target + b;
+    } else if(op === 'x'){
+      const divisors = [];
+      for(let i=2;i<=Math.sqrt(Math.max(target,1));i++){
+        if(target % i === 0) divisors.push(i);
+      }
+      if(divisors.length>0 && target>0){
+        b = choice(divisors);
+        a = target / b;
+      } else {
+        a = 1; b = target;
+      }
+    } else {
+      b = randInt(2, 6+round);
+      a = target * b;
+    }
+    problem = {a,b,op,answer:target};
+    setProblemDisplay(a,op,b);
+  }
+
+  function spawnFishObject(number, isGold){
+    let x, y;
+    do {
+      x = rand(60, 840);
+      y = rand(WATER_TOP+40, SAND_Y-100);
+    } while (x>530 && y>410);
+    const d = DIFF[difficulty];
+    const spd = d.speedBase * rand(d.varMin, d.varMax);
+    const ang = rand(0, Math.PI*2);
+    return {
+      id: idCounter++,
+      x, y,
+      vx: Math.cos(ang)*spd,
+      vy: Math.sin(ang)*spd*0.6,
+      radius: isGold ? 24 : 16,
+      number: number,
+      isGold: isGold,
+      hue: isGold ? rand(38,48) : 0,
+      wob: rand(0, Math.PI*2),
+      popped: false
+    };
+  }
+
+  function initRound(){
+    goldfish = [];
+    const nums = generateProblem(fishCount);
+    for(let i=0;i<fishCount;i++){
+      goldfish.push(spawnFishObject(nums[i], true));
+    }
+    roundEl.textContent = round;
+  }
+
+  function initDecor(){
+    decorFish = [];
+    const colors = ['#5ec8ff','#c47cff','#4ee6b0','#ff9ecb','#8ea6ff'];
+    for(let i=0;i<5;i++){
+      const x = rand(60,840), y = rand(WATER_TOP+30, SAND_Y-140);
+      const spd = rand(20,55);
+      const ang = rand(0,Math.PI*2);
+      decorFish.push({
+        x,y, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd*0.5,
+        radius: rand(8,13), color: colors[i%colors.length], wob: rand(0,Math.PI*2)
+      });
+    }
+    scavengers = [];
+    for(let i=0;i<2;i++){
+      scavengers.push({
+        x: 150 + i*400, y: SAND_Y-14, dir: i%2===0?1:-1, speed: rand(14,22),
+        minX: 60+i*350, maxX: 380+i*350, wob: rand(0,Math.PI*2)
+      });
+    }
+  }
+
+  function showMessage(text, color){
+    msgEl.textContent = text;
+    msgEl.style.background = color==='red' ? 'rgba(120,20,20,0.85)' : color==='orange' ? 'rgba(150,90,10,0.85)' : 'rgba(15,90,60,0.85)';
+    msgEl.style.color = '#fff';
+    msgEl.style.opacity = '1';
+    clearTimeout(showMessage._t);
+    showMessage._t = setTimeout(()=>{ msgEl.style.opacity = '0'; }, 1400);
+  }
+
+  function attemptShoot(px, py){
+    let target = null, bestD = Infinity;
+    for(const f of goldfish){
+      if(f.popped) continue;
+      const d = dist(px,py,f.x,f.y);
+      if(d < f.radius+10 && d < bestD){ bestD = d; target = f; }
+    }
+    if(!target) return;
+    if(target.number === problem.answer){
+      const tip = gunTip();
+      if(isClearShot(tip, {x:target.x, y:target.y})){
+        fireBullet(tip, target);
+      } else {
+        showMessage('🚧 No clear shot — move the diver!', 'orange');
+        playSound('blocked');
+      }
+    } else {
+      showMessage('❌ Wrong fish — check the math!', 'red');
+      playSound('wrong');
+    }
+  }
+
+  function fireBullet(from, targetFish){
+    diver.firing = 0.25;
+    diver.gunAngle = Math.atan2((targetFish.y-34-diver.y), (targetFish.x-diver.x));
+    bullets.push({ x: from.x, y: from.y, target: targetFish, speed: 620 });
+    playSound('shoot');
+  }
+
+  function explodeFish(fish){
+    fish.popped = true;
+    score += 10 * round;
+    scoreEl.textContent = score;
+    for(let i=0;i<18;i++){
+      const ang = rand(0,Math.PI*2);
+      const spd = rand(60,260);
+      particles.push({
+        x: fish.x, y: fish.y,
+        vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+        life: rand(0.4,0.8), maxLife: 0.8,
+        color: 'hsl(' + rand(20,50) + ',100%,' + rand(50,70) + '%)'
+      });
+    }
+    playSound('explode');
+    goldfish = goldfish.filter(f => f !== fish);
+    if(goldfish.length === 0){
+      setTimeout(()=>{
+        round += 1;
+        if(difficulty !== 'supereasy'){
+          fishCount += 2;
+        }
+        showMessage('🎉 Round ' + (round-1) + ' complete! Round ' + round + ' begins…', 'green');
+        playSound('round');
+        initRound();
+      }, 650);
+    } else {
+      if(DIFF[difficulty].fixedNumbers){
+        generateProblemForRemainingFish();
+      } else {
+        assignNewProblemToFish();
+      }
+    }
+  }
+
+  function getPos(evt){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+    const cx = (evt.touches ? evt.touches[0].clientX : evt.clientX) - rect.left;
+    const cy = (evt.touches ? evt.touches[0].clientY : evt.clientY) - rect.top;
+    return { x: cx*scaleX, y: cy*scaleY };
+  }
+  let downPos = null;
+
+  function onDown(evt){
+    if(!gameStarted) return;
+    evt.preventDefault();
+    const p = getPos(evt);
+    downPos = p;
+    if(p.x > diver.x-40 && p.x < diver.x+40 && p.y > diver.y-90 && p.y < diver.y+20){
+      diver.dragging = true;
+      diver.dragOffsetX = p.x - diver.x;
+      canvas.style.cursor = 'grabbing';
+    }
+  }
+  function onMove(evt){
+    if(!gameStarted || !diver.dragging) return;
+    evt.preventDefault();
+    const p = getPos(evt);
+    diver.x = Math.min(860, Math.max(40, p.x - diver.dragOffsetX));
+  }
+  function onUp(evt){
+    if(!gameStarted) return;
+    evt.preventDefault();
+    canvas.style.cursor = 'grab';
+    if(diver.dragging){
+      diver.dragging = false;
+      return;
+    }
+    if(downPos) attemptShoot(downPos.x, downPos.y);
+  }
+
+  canvas.addEventListener('mousedown', onDown);
+  canvas.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+  canvas.addEventListener('touchstart', onDown, {passive:false});
+  canvas.addEventListener('touchmove', onMove, {passive:false});
+  canvas.addEventListener('touchend', onUp, {passive:false});
+
+  function drawFishShape(x,y,radius,facing,color){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(facing,1);
+    ctx.beginPath();
+    ctx.moveTo(-radius*0.9,0);
+    ctx.lineTo(-radius*1.7,-radius*0.7);
+    ctx.lineTo(-radius*1.7,radius*0.7);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0,0,radius,radius*0.68,0,0,Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-radius*0.15,-radius*0.6);
+    ctx.lineTo(radius*0.15,-radius*1.15);
+    ctx.lineTo(radius*0.5,-radius*0.55);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(radius*0.5, -radius*0.12, radius*0.13, 0, Math.PI*2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(radius*0.54, -radius*0.12, radius*0.06, 0, Math.PI*2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawShipwreck(){
+    const h = ship.hull;
+    // --- hull silhouette with a smooth rounded bow ---
+    ctx.beginPath();
+    ctx.moveTo(h[0][0], h[0][1]);
+    ctx.quadraticCurveTo(h[1][0]-14, (h[0][1]+h[1][1])/2, h[1][0], h[1][1]);
+    ctx.quadraticCurveTo(h[2][0]-16, h[2][1]+10, h[2][0], h[2][1]);
+    for(let i=3;i<h.length;i++) ctx.lineTo(h[i][0], h[i][1]);
+    ctx.closePath();
+    const hullGrad = ctx.createLinearGradient(540,418,886,562);
+    hullGrad.addColorStop(0,'#6b5136');
+    hullGrad.addColorStop(0.45,'#4a3721');
+    hullGrad.addColorStop(0.75,'#362615');
+    hullGrad.addColorStop(1,'#241a0e');
+    ctx.fillStyle = hullGrad;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+
+    // underside shading (darker, as if in shadow / underwater silt)
+    const shadeGrad = ctx.createLinearGradient(0,470,0,562);
+    shadeGrad.addColorStop(0,'rgba(0,0,0,0)');
+    shadeGrad.addColorStop(1,'rgba(0,0,0,0.45)');
+    ctx.fillStyle = shadeGrad;
+    ctx.fillRect(520,418,380,150);
+
+    // wood plank grain lines following hull curvature
+    ctx.strokeStyle = 'rgba(15,8,3,0.35)';
+    ctx.lineWidth = 1.3;
+    for(let i=0;i<10;i++){
+      const bx = 560+i*36;
+      ctx.beginPath();
+      ctx.moveTo(bx, 430+i*4);
+      ctx.quadraticCurveTo(bx-8, 500, bx-16, 560);
+      ctx.stroke();
+    }
+    // horizontal plank seams
+    ctx.strokeStyle = 'rgba(15,8,3,0.25)';
+    ctx.lineWidth = 1;
+    for(let i=0;i<5;i++){
+      ctx.beginPath();
+      ctx.moveTo(545, 470+i*18);
+      ctx.quadraticCurveTo(715, 460+i*18, 884, 470+i*18);
+      ctx.stroke();
+    }
+
+    // subtle light sheen along the top edge of the hull
+    const sheen = ctx.createLinearGradient(600,418,600,460);
+    sheen.addColorStop(0,'rgba(255,240,200,0.18)');
+    sheen.addColorStop(1,'rgba(255,240,200,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(560,415,330,45);
+
+    // algae / moss patches
+    ship.algae.forEach(a=>{
+      const g = ctx.createRadialGradient(a.x,a.y,2,a.x,a.y,a.r);
+      g.addColorStop(0,'rgba(70,130,60,0.5)');
+      g.addColorStop(1,'rgba(70,130,60,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(a.x,a.y,a.r,0,Math.PI*2);
+      ctx.fill();
+    });
+
+    // rot holes revealing dark interior + a hint of ribs inside
+    ship.holes.forEach(hl=>{
+      ctx.beginPath();
+      ctx.ellipse(hl.x, hl.y, hl.r, hl.r*0.75, 0.2, 0, Math.PI*2);
+      ctx.fillStyle = '#0a0704';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(120,95,60,0.6)';
+      ctx.lineWidth = 1.4;
+      for(let i=-1;i<=1;i++){
+        ctx.beginPath();
+        ctx.moveTo(hl.x-hl.r*0.5, hl.y+i*hl.r*0.4);
+        ctx.lineTo(hl.x+hl.r*0.5, hl.y+i*hl.r*0.4);
+        ctx.stroke();
+      }
+    });
+
+    ctx.restore(); // end clip
+
+    ctx.strokeStyle = '#1c130a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // --- exposed broken ribs above the deck line, tapered like real ship frames ---
+    ship.ribX.forEach((rx,i)=>{
+      const baseY = 420 - (i%2===0?4:0);
+      const topY = baseY - 46 - (i%2===0?8:0);
+      ctx.beginPath();
+      ctx.moveTo(rx-9, baseY+10);
+      ctx.quadraticCurveTo(rx-11, topY+18, rx-4, topY);
+      ctx.quadraticCurveTo(rx, topY-4, rx+4, topY);
+      ctx.quadraticCurveTo(rx+11, topY+18, rx+9, baseY+10);
+      ctx.closePath();
+      const ribGrad = ctx.createLinearGradient(rx,topY,rx,baseY);
+      ribGrad.addColorStop(0,'#5a4327');
+      ribGrad.addColorStop(1,'#2e2211');
+      ctx.fillStyle = ribGrad;
+      ctx.fill();
+      ctx.strokeStyle = '#1c140a';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    });
+
+    // broken deck railing with a few remaining posts
+    ctx.strokeStyle = '#6b5334';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ship.deckLine.forEach((p,i)=> i===0?ctx.moveTo(p[0],p[1]-3):ctx.lineTo(p[0],p[1]-3));
+    ctx.stroke();
+    [0,1,3,4].forEach(i=>{
+      const p = ship.deckLine[i];
+      ctx.beginPath();
+      ctx.moveTo(p[0], p[1]-3);
+      ctx.lineTo(p[0], p[1]-14);
+      ctx.stroke();
+    });
+
+    // --- mast: tapered, leaning, broken top ---
+    const mb = ship.mastBase, mt = ship.mastTop;
+    ctx.beginPath();
+    ctx.moveTo(mb.x-6, mb.y);
+    ctx.lineTo(mt.x-2, mt.y);
+    ctx.lineTo(mt.x+3, mt.y);
+    ctx.lineTo(mb.x+6, mb.y);
+    ctx.closePath();
+    const mastGrad = ctx.createLinearGradient(mb.x,mb.y,mt.x,mt.y);
+    mastGrad.addColorStop(0,'#4a3520');
+    mastGrad.addColorStop(1,'#2c2013');
+    ctx.fillStyle = mastGrad;
+    ctx.fill();
+    // jagged snapped top
+    ctx.beginPath();
+    ctx.moveTo(mt.x-2, mt.y);
+    ctx.lineTo(mt.x+9, mt.y+16);
+    ctx.lineTo(mt.x-5, mt.y+22);
+    ctx.lineTo(mt.x+3, mt.y);
+    ctx.closePath();
+    ctx.fillStyle = '#1f160c';
+    ctx.fill();
+
+    // broken yard arm hanging at an angle
+    ctx.strokeStyle = '#3a2b18';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ship.yardArm.x1, ship.yardArm.y1);
+    ctx.lineTo(ship.yardArm.x2, ship.yardArm.y2);
+    ctx.stroke();
+
+    // tattered sail with a visible tear
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#cbb98f';
+    ctx.beginPath();
+    ctx.moveTo(ship.yardArm.x2, ship.yardArm.y2);
+    ctx.lineTo(mb.x-4, mb.y-64);
+    ctx.lineTo(mb.x-30, mb.y-38 + Math.sin(time*1.5)*4);
+    ctx.lineTo(mb.x-12, mb.y-18);
+    ctx.lineTo(mb.x-36, mb.y-2 + Math.sin(time*1.7)*3);
+    ctx.lineTo(ship.yardArm.x1, ship.yardArm.y1+6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // tear hole in the sail
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.ellipse(mb.x-20, mb.y-46, 9, 13, 0.3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+
+    // rigging ropes sagging
+    ctx.strokeStyle = 'rgba(170,150,110,0.55)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(mt.x, mt.y+14);
+    ctx.quadraticCurveTo(mt.x+70, mt.y+70, 830, 436);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mt.x, mt.y+14);
+    ctx.quadraticCurveTo(mt.x-80, mt.y+80, 604, 448);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(mb.x, mb.y-10);
+    ctx.quadraticCurveTo(mb.x+40, mb.y+30, 858, 448);
+    ctx.stroke();
+
+    // portholes — one intact, one cracked
+    [ship.porthole1, ship.porthole2].forEach((p,idx)=>{
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = '#0c1c26';
+      ctx.fill();
+      ctx.strokeStyle = '#8a7350';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(p.x-p.r*0.3, p.y-p.r*0.3, p.r*0.25, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fill();
+      if(idx===1){
+        ctx.strokeStyle = 'rgba(200,220,230,0.5)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(p.x-p.r*0.6,p.y-p.r*0.5); ctx.lineTo(p.x+p.r*0.4,p.y+p.r*0.6);
+        ctx.moveTo(p.x-p.r*0.2,p.y-p.r*0.7); ctx.lineTo(p.x+p.r*0.7,p.y+p.r*0.1);
+        ctx.stroke();
+      }
+    });
+
+    // anchor with heavier chain draping into the sand
+    ctx.strokeStyle = '#4a4a4a';
+    ctx.lineWidth = 3;
+    let cx = ship.anchorX, cy = 500;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    for(let i=0;i<7;i++){
+      cx += (i%2===0? 7:-7);
+      cy += 9;
+      ctx.lineTo(cx,cy);
+      ctx.moveTo(cx,cy);
+    }
+    ctx.stroke();
+    ctx.strokeStyle = '#6a6a6a';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(ship.anchorX, cy);
+    ctx.lineTo(ship.anchorX, cy+16);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ship.anchorX, cy+26, 13, Math.PI*0.1, Math.PI*0.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ship.anchorX-6, cy+8); ctx.lineTo(ship.anchorX+14, cy+8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ship.anchorX-15, cy+18); ctx.lineTo(ship.anchorX-21, cy+30);
+    ctx.moveTo(ship.anchorX+15, cy+18); ctx.lineTo(ship.anchorX+21, cy+30);
+    ctx.stroke();
+
+    // barnacle clusters + a starfish for realism
+    const barnacles = [[602,548],[646,556],[818,542],[858,524]];
+    barnacles.forEach(function(pos){
+      const bx = pos[0], by = pos[1];
+      for(let i=0;i<4;i++){
+        ctx.beginPath();
+        ctx.arc(bx+i*5, by-(i%2)*4, 3.2, 0, Math.PI*2);
+        ctx.fillStyle = i%2===0 ? '#e8c9c9' : '#cf9a9a';
+        ctx.fill();
+      }
+    });
+    ctx.save();
+    ctx.translate(730,556);
+    ctx.rotate(0.3);
+    ctx.fillStyle = '#d9834f';
+    for(let i=0;i<5;i++){
+      ctx.save();
+      ctx.rotate((Math.PI*2/5)*i);
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.lineTo(4,-14);
+      ctx.lineTo(-4,-14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+    // seaweed draping off the wreck
+    ctx.strokeStyle = '#2d7a4f';
+    ctx.lineWidth = 4;
+    [[558,478],[886,468]].forEach(function(pos, i){
+      const sx = pos[0], sy = pos[1];
+      ctx.beginPath();
+      ctx.moveTo(sx,sy);
+      const sway = Math.sin(time*1.3+i*2)*10;
+      ctx.quadraticCurveTo(sx+sway, sy-40, sx+sway*0.5, sy-75);
+      ctx.stroke();
+    });
+
+    // glowing math panel — salvaged brass-rimmed window
+    const p = ship.panel;
+    ctx.fillStyle = '#0c2a1e';
+    ctx.strokeStyle = '#c9a24f';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(p.x, p.y, p.w, p.h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,220,150,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(p.x+3,p.y+3,p.w-6,p.h-6);
+    ctx.fillStyle = '#7dffb0';
+    ctx.font = '600 21px "Share Tech Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const opSym = problem.op==='x' ? '×' : problem.op==='/' ? '÷' : problem.op;
+    ctx.shadowColor = '#39d97a'; ctx.shadowBlur = 9;
+    ctx.fillText(problem.a + ' ' + opSym + ' ' + problem.b + ' = ?', p.x+p.w/2, p.y+p.h/2);
+    ctx.shadowBlur = 0;
+  }
+
+  function draw(){
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#1a7fb0');
+    grad.addColorStop(0.5,'#0e5680');
+    grad.addColorStop(1,'#04263c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    for(let i=0;i<5;i++){
+      ctx.beginPath();
+      const bx = 80+i*180 + Math.sin(time*0.2+i)*20;
+      ctx.moveTo(bx,0);
+      ctx.lineTo(bx-40,H);
+      ctx.lineTo(bx+70,H);
+      ctx.lineTo(bx+40,0);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = '#1f8f5c';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    [40,90,830,780].forEach(function(bx, i){
+      ctx.beginPath();
+      ctx.moveTo(bx, SAND_Y);
+      const sway = Math.sin(time*1.2+i)*14;
+      ctx.quadraticCurveTo(bx+sway, SAND_Y-60, bx+sway*0.5, SAND_Y-120);
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = '#c9a15f';
+    ctx.fillRect(0, SAND_Y, W, H-SAND_Y);
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    for(let i=0;i<20;i++){
+      ctx.beginPath();
+      ctx.ellipse(20+i*46, SAND_Y+ (i%2)*10+8, 20,5,0,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    drawShipwreck();
+
+    scavengers.forEach(function(s){
+      ctx.save();
+      ctx.translate(s.x, s.y + Math.sin(time*4+s.wob)*1.5);
+      ctx.scale(s.dir,1);
+      ctx.fillStyle = '#8a5a2e';
+      ctx.beginPath();
+      ctx.ellipse(0,0,20,8,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-18,0); ctx.lineTo(-30,-8); ctx.lineTo(-30,8); ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#5c3a1a'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(16,2); ctx.lineTo(26,6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(16,-2); ctx.lineTo(26,-6); ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(12,-2,2.2,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    });
+
+    decorFish.forEach(function(f){
+      const facing = f.vx >= 0 ? 1 : -1;
+      drawFishShape(f.x, f.y + Math.sin(time*3+f.wob)*3, f.radius, facing, f.color);
+    });
+
+    goldfish.forEach(function(f){
+      const facing = f.vx >= 0 ? 1 : -1;
+      const color = 'hsl(' + f.hue + ', 95%, 55%)';
+      drawFishShape(f.x, f.y, f.radius, facing, color);
+      ctx.fillStyle = '#5a2d00';
+      ctx.font = '700 16px "Baloo 2", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(f.number, f.x, f.y+1);
+    });
+
+    drawDiver();
+
+    bubbles.forEach(function(b){
+      ctx.beginPath();
+      ctx.arc(b.x + Math.sin(time*3+b.wob)*4, b.y, b.r, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,255,255,' + b.life + ')';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    });
+
+    bullets.forEach(function(b){
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#fff59d';
+      ctx.shadowColor = '#fff59d'; ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    particles.forEach(function(pt){
+      ctx.globalAlpha = Math.max(pt.life/pt.maxLife, 0);
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = pt.color;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+  }
+
+  function drawDiver(){
+    const x = diver.x, y = diver.y;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.fillStyle = '#e08a2b';
+    ctx.beginPath(); ctx.ellipse(-10,18,14,5,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(10,18,14,5,-0.3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#c0392b';
+    ctx.fillRect(-14,-10,10,26);
+    ctx.fillRect(4,-10,10,26);
+    ctx.fillStyle = '#d94f3d';
+    ctx.beginPath();
+    ctx.roundRect(-18,-46,36,42,10);
+    ctx.fill();
+    ctx.fillStyle = '#7a2e20';
+    ctx.fillRect(-6,-30,12,10);
+    const ga = diver.gunAngle;
+    ctx.save();
+    ctx.translate(6,-30);
+    ctx.rotate(ga*0.5);
+    ctx.fillStyle = '#d94f3d';
+    ctx.fillRect(0,-6,34,12);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(6,-34);
+    ctx.rotate(ga);
+    ctx.fillStyle = diver.firing>0 ? '#ffe08a' : '#3b3b3b';
+    ctx.fillRect(0,-4,44,8);
+    ctx.fillStyle = '#222';
+    ctx.fillRect(4,-8,10,16);
+    ctx.restore();
+    ctx.fillStyle = '#9aa0a6';
+    ctx.beginPath();
+    ctx.ellipse(0,-46,20,7,0,0,Math.PI*2);
+    ctx.fill();
+    const domeGrad = ctx.createLinearGradient(-20,-90,20,-46);
+    domeGrad.addColorStop(0,'#e9edf0');
+    domeGrad.addColorStop(1,'#b7c0c6');
+    ctx.fillStyle = domeGrad;
+    ctx.beginPath();
+    ctx.moveTo(-19,-46);
+    ctx.quadraticCurveTo(-22,-92, 0,-94);
+    ctx.quadraticCurveTo(22,-92, 19,-46);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#7d878d';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#7d878d';
+    [-14,-4,6,16].forEach(function(rx){
+      ctx.beginPath(); ctx.arc(rx,-47,1.6,0,Math.PI*2); ctx.fill();
+    });
+    ctx.beginPath();
+    ctx.arc(0,-70,13,0,Math.PI*2);
+    ctx.fillStyle = '#1d3f52';
+    ctx.fill();
+    ctx.strokeStyle = '#8a949a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(-4,-74,3,0,Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fill();
+    ctx.fillStyle = '#8a949a';
+    ctx.fillRect(-4,-100,8,8);
+    ctx.beginPath(); ctx.arc(0,-102,4,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function update(dt){
+    time += dt;
+    if(!gameStarted) return;
+    if(diver.firing>0) diver.firing -= dt;
+
+    function bounceMove(f, dt, minY, maxY){
+      f.x += f.vx*dt;
+      f.y += f.vy*dt;
+      if(f.x < 40 + f.radius){ f.x = 40+f.radius; f.vx *= -1; }
+      if(f.x > 860 - f.radius){ f.x = 860-f.radius; f.vx *= -1; }
+      if(f.y < minY){ f.y = minY; f.vy *= -1; }
+      if(f.y > maxY){ f.y = maxY; f.vy *= -1; }
+    }
+
+    goldfish.forEach(function(f){ bounceMove(f, dt, WATER_TOP+30, SAND_Y-90); });
+    decorFish.forEach(function(f){ bounceMove(f, dt, WATER_TOP+20, SAND_Y-130); });
+
+    scavengers.forEach(function(s){
+      s.x += s.dir * s.speed * dt;
+      if(s.x < s.minX){ s.x = s.minX; s.dir = 1; }
+      if(s.x > s.maxX){ s.x = s.maxX; s.dir = -1; }
+    });
+
+    bubbleTimer -= dt;
+    if(bubbleTimer <= 0){
+      bubbleTimer = rand(0.25, 0.6);
+      bubbles.push({ x: diver.x + rand(-4,4), y: diver.y-96, r: rand(2,5), life: 1, wob: rand(0,10) });
+    }
+    bubbles.forEach(function(b){ b.y -= 40*dt; b.life -= dt*0.4; });
+    bubbles = bubbles.filter(function(b){ return b.life > 0 && b.y > WATER_TOP-20; });
+
+    bullets.forEach(function(b){
+      const t = b.target;
+      const d = dist(b.x,b.y,t.x,t.y);
+      const step = b.speed*dt;
+      if(d <= step+6){
+        b.hit = true;
+        explodeFish(t);
+      } else {
+        b.x += (t.x-b.x)/d*step;
+        b.y += (t.y-b.y)/d*step;
+      }
+    });
+    bullets = bullets.filter(function(b){ return !b.hit; });
+
+    particles.forEach(function(pt){
+      pt.x += pt.vx*dt; pt.y += pt.vy*dt;
+      pt.vx *= 0.94; pt.vy *= 0.94;
+      pt.life -= dt;
+    });
+    particles = particles.filter(function(p){ return p.life > 0; });
+  }
+
+  let lastT = performance.now();
+  function loop(now){
+    const dt = Math.min(0.033, (now-lastT)/1000);
+    lastT = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function beginGame(){
+    score = 0; round = 1; fishCount = (difficulty === 'supereasy') ? 5 : 6;
+    scoreEl.textContent = score; roundEl.textContent = round;
+    bullets = []; particles = []; bubbles = [];
+    initRound();
+    initDecor();
+    gameStarted = true;
+    if(!loopStarted){
+      loopStarted = true;
+      lastT = performance.now();
+      requestAnimationFrame(loop);
+    }
+  }
+
+  initDecor();
+  draw();
+})();
+</script>
+</body>
+</html>
